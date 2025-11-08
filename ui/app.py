@@ -134,5 +134,5 @@ else:
     log_ph.code("Waiting for first detection...")
 
 # Auto-refresh
-time.sleep(4)
+time.sleep(20)
 st.rerun()

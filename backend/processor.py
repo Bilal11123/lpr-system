@@ -9,6 +9,7 @@ from util import get_car, read_license_plate
 from db import upsert_plate
 from pathlib import Path
 import logging
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -40,8 +41,8 @@ def process_video(video_path: str):
         if not ret:
             break
 
-        if frame_count > 1000:  # Optional limit for testing
-            break
+        # if frame_count > 1000:  # Optional limit for testing
+        #     break
 
         frame_count += 1
         if frame_count % frame_skip != 0:
@@ -72,12 +73,12 @@ def process_video(video_path: str):
 
             # Crop and OCR
             license_plate_crop = frame[int(y1):int(y2), int(x1):int(x2)]
-            license_plate_crop_gray = cv2.cvtColor(license_plate_crop, cv2.COLOR_BGR2GRAY)
-            _, license_plate_crop_thresh = cv2.threshold(
-                license_plate_crop_gray, 64, 255, cv2.THRESH_BINARY_INV
-            )
+            # license_plate_crop_gray = cv2.cvtColor(license_plate_crop, cv2.COLOR_BGR2GRAY)
+            # _, license_plate_crop_thresh = cv2.threshold(
+            #     license_plate_crop_gray, 64, 255, cv2.THRESH_BINARY_INV
+            # )
 
-            license_number, ocr_score = read_license_plate(license_plate_crop_thresh)
+            license_number, ocr_score = read_license_plate(license_plate_crop)
             if not license_number or len(license_number) < 4:
                 continue
 
@@ -101,13 +102,6 @@ def process_stream(url: str, source_name: str):
     Same pipeline as process_video but reads from a live URL.
     Stops after ~5 minutes of no new frames (timeout) or when user aborts.
     """
-    import cv2
-    from ultralytics import YOLO
-    import numpy as np
-    from sort.sort import Sort
-    from util import get_car, read_license_plate
-    from db import upsert_plate
-    import logging, time
 
     logger = logging.getLogger(__name__)
     logger.info(f"Opening stream: {url}")
@@ -142,7 +136,7 @@ def process_stream(url: str, source_name: str):
         if frame_count % frame_skip != 0:
             continue
 
-        # ---- vehicle detection & tracking (identical to process_video) ----
+        # vehicle detection & tracking (identical to process_video)
         detections = coco_model(frame)[0]
         detections_ = []
         for d in detections.boxes.data.tolist():
@@ -152,7 +146,7 @@ def process_stream(url: str, source_name: str):
 
         track_ids = mot_tracker.update(np.asarray(detections_))
 
-        # ---- plate detection & OCR ----
+        # plate detection & OCR
         license_plates = license_plate_detector(frame)[0]
         for lp in license_plates.boxes.data.tolist():
             x1, y1, x2, y2, score, _ = lp
@@ -164,7 +158,7 @@ def process_stream(url: str, source_name: str):
             gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
             _, thresh = cv2.threshold(gray, 64, 255, cv2.THRESH_BINARY_INV)
 
-            text, ocr_score = read_license_plate(thresh)
+            text, ocr_score = read_license_plate(crop)
             if not text:
                 continue
 

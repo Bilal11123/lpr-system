@@ -3,7 +3,7 @@
 Real-time and batch license plate detection & recognition using:
 
 - **YOLOv8** – Vehicle & plate detection  
-- **EasyOCR** – OCR  
+- **Paddele OCR** – OCR  
 - **SORT** – Tracking  
 - **FastAPI** – Backend  
 - **Streamlit** – Dashboard  

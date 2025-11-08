@@ -1,8 +1,7 @@
 import string
-import easyocr
-
-# Initialize the OCR reader
-reader = easyocr.Reader(['en'], gpu=False)
+import numpy as np
+from paddleocr import TextRecognition
+model = TextRecognition()
 
 def read_license_plate(license_plate_crop):
     """
@@ -15,13 +14,12 @@ def read_license_plate(license_plate_crop):
         tuple: Tuple containing the formatted license plate text and its confidence score.
     """
 
-    detections = reader.readtext(license_plate_crop)
-
-    for detection in detections:
-        bbox, text, score = detection
-
-        text = text.upper().replace(' ', '')
-        return text, score
+    img_np = np.array(license_plate_crop)
+    output = model.predict(input=img_np, batch_size=1)
+    count = 0
+    for res in output:
+        if res['rec_text']:
+            return res['rec_text'].upper().replace(' ', ''), float(res['rec_score'])
 
     return None, None
 
