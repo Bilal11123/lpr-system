@@ -4,7 +4,7 @@ import streamlit as st
 import requests, time, pandas as pd
 
 # ---------- CONFIG ----------
-API_BASE = "http://localhost:8000"
+API_BASE = "http://0.0.0.0:8000"
 UPLOAD_EP = f"{API_BASE}/process-video/"
 STREAM_EP = f"{API_BASE}/process-stream/"
 PLATES_EP = f"{API_BASE}/plates/"

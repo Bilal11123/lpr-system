@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   backend:
     build:
@@ -10,19 +8,14 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./uploads:/app/uploads
-      - ./models:/app/models
-      - ./sort:/app/sort
-      - ./license_plates.db:/app/license_plates.db
+      - ./backend/uploads:/app/uploads
+      - ./backend/sort:/app/sort
+      # REMOVED problematic file mount
+      # - ./backend/license_plates.db:/app/license_plates.db
     environment:
       - KMP_DUPLICATE_LIB_OK=TRUE
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [gpu]
+    # REMOVED GPU section (not supported in WSL2 without extra setup)
+    # deploy: ...
     command: uvicorn app:app --host 0.0.0.0 --port 8000
 
   frontend:
@@ -39,5 +32,6 @@ services:
       - API_BASE=http://backend:8000
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
 
+# Optional: persistent named volume for uploads only
 volumes:
   uploads:
