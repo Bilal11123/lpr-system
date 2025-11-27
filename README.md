@@ -1,97 +1,120 @@
-# License Plate Recognition (LPR) System
+# License Plate Recognition (LPR) System  
+**Real-time & Batch LPR using YOLOv8 + PaddleOCR + SORT**
 
-Real-time and batch license plate detection & recognition using:
+[![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-31011/)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://hub.docker.com/u/mbilal1446)
+[![Streamlit](https://img.shields.io/badge/frontend-Streamlit-red)](http://localhost:8501)
 
-- **YOLOv8** – Vehicle & plate detection  
-- **Paddele OCR** – OCR  
-- **SORT** – Tracking  
-- **FastAPI** – Backend  
-- **Streamlit** – Dashboard  
-- **Docker Compose** – Deployment  
+A complete **License Plate Recognition** system supporting:
+- Video file upload
+- Live RTSP / HTTP / Webcam streaming
+- High-accuracy OCR with **PaddleOCR**
+- Vehicle tracking using **SORT**
+- Beautiful dashboard with auto-refresh & CSV export
 
-Dataset used to train Lincese Plate Detection Model at [link](https://universe.roboflow.com/roboflow-universe-projects/license-plate-recognition-rxg4e/dataset/11).
+Trained License Plate Detector: [Roboflow Universe Dataset](https://universe.roboflow.com/roboflow-universe-projects/license-plate-recognition-rxg4e/dataset/11)
 
 ---
 
 ## Features
 
-- Upload video (MP4, AVI, etc.)
-- Live RTSP / HTTP / Webcam streaming
-- Confidence scoring
-- SQLite persistence
-- Auto-refresh UI
-- CSV export
-- GPU support (optional)
+- Upload videos (MP4, AVI, MOV, MKV)
+- Live stream from IP cameras / webcam (`0`)
+- Confidence-based plate recognition
+- Persistent SQLite database
+- Real-time dashboard with auto-refresh
+- Export results to CSV
+- Fully containerized with Docker
 
 ---
 
-## Quick Start (Docker)
+## Quick Start (Recommended)
+
+### Option 1: Run directly from Docker Hub (No clone needed!)
+
+```bash
+mkdir lpr-demo && cd lpr-demo
+curl -L https://raw.githubusercontent.com/Bilal11123/lpr-system/main/docker-compose.yml -o docker-compose.yml
+docker-compose up
+```
+
+Open → [http://localhost:8501](http://localhost:8501)
+
+### Option 2: From source (with custom models)
 
 ```bash
 git clone https://github.com/Bilal11123/lpr-system.git
 cd lpr-system
 
-# Add models
-mkdir -p models
-# → yolov8n.pt
+# Place your models
+# → yolov8n.pt (download from Ultralytics)
 # → best.pt (your trained plate detector)
 
-# Add SORT
-git clone https://github.com/abewley/sort.git
-# or copy sort/sort.py → project/sort/
+# Add SORT tracker
+git clone https://github.com/abewley/sort.git backend/sort
 
 # Run
 docker-compose up --build
 ```
 
 UI: [http://localhost:8501](http://localhost:8501)  
-API: [http://localhost:8000/docs](http://localhost:8000/docs)
+API Docs: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## Local Development (Python 3.10.11)
+## Docker Images (Public)
+
+- Backend: `mbilal1446/lpr-backend:latest` → [Docker Hub](https://hub.docker.com/r/mbilal1446/lpr-backend)
+- Frontend: `mbilal1446/lpr-frontend:latest` → [Docker Hub](https://hub.docker.com/r/mbilal1446/lpr-frontend)
+
+Built with **Python 3.10.11-slim** for full compatibility.
+
+---
+
+## Local Development
 
 ```bash
-# Create virtual environment
-python3.10 -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
-# Install dependencies
-pip install -r backend/requirements.txt
-pip install -r ui/requirements.txt
-
-# Run backend
+# Backend
 cd backend
 uvicorn app:app --reload --port 8000
 
-# Run frontend (new terminal)
-cd ../ui
+# Frontend (new terminal)
+cd ui
 streamlit run app.py
 ```
-
----
-
-## Docker Images (Python 3.10.11)
-
-Both services use:
-
-```dockerfile
-FROM python:3.10.11-slim
-```
-
-Ensures **exact version compatibility**.
 
 ---
 
 ## Project Structure
 
 ```
-project/
-├── backend/           → FastAPI + processor
-|   ├── sort/          → SORT tracker
-├── ui/                → Streamlit UI
-├── uploads/           → Uploaded videos
-├── license_plates.db  → Results
+lpr-system/
+├── backend/           → FastAPI + YOLO + PaddleOCR + SORT
+│   └── sort/          → Tracking logic
+├── ui/                → Streamlit dashboard
+├── uploads/           → Uploaded videos (persisted)
+├── license_plates.db  → Detection results
 └── docker-compose.yml
 ```
+
+---
+
+## Tech Stack
+
+| Component         | Technology                      |
+|-------------------|---------------------------------|
+| Detection         | YOLOv8 (Ultralytics)            |
+| OCR               | PaddleOCR (high accuracy)       |
+| Tracking          | SORT                            |
+| Backend           | FastAPI                         |
+| Frontend          | Streamlit                       |
+| Deployment        | Docker Compose                  |
+| Language          | Python 3.10.11                  |
+
+---
+
+**Deployed. Dockerized. Production-ready.**
+
+Feel free to star ⭐ the repo if you like it!
+
+Made with ❤️ by [Muhammad Bilal](https://github.com/Bilal11123)
