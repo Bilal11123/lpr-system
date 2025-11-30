@@ -6,11 +6,20 @@ from ultralytics import YOLO
 import cv2
 import numpy as np
 from sort.sort import Sort
-from util import get_car, read_license_plate
+from util import get_car_deep, read_license_plate
 from db import upsert_plate
 from pathlib import Path
 import logging
 import time
+from deep_sort_realtime.deepsort_tracker import DeepSort
+
+tracker = DeepSort(max_age=30,  # frames to keep track after disappearance
+                    n_init=3,    # consecutive detections to confirm track
+                    nn_budget=100,
+                    override_track_class=None,
+                    embedder="mobilenet",  # fast & lightweight
+                    half=True,             # use FP16 for speed
+                    bgr=True)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -28,8 +37,8 @@ def process_video(video_path: str):
     seen_car_ids = set()
 
     # Load models
-    coco_model = YOLO('yolov8n.pt')
-    license_plate_detector = YOLO('./best.pt')
+    coco_model = YOLO('yolo11n.pt')
+    license_plate_detector = YOLO('./License_plate_yolo11.pt')
 
     cap = cv2.VideoCapture(str(video_path))
     frame_count = 0
@@ -52,13 +61,17 @@ def process_video(video_path: str):
         # Detect vehicles
         detections = coco_model(frame)[0]
         detections_ = []
-        for detection in detections.boxes.data.tolist():
+        for detection in detections.boxes.data.numpy():
             x1, y1, x2, y2, score, class_id = detection
+
             if int(class_id) in [2, 3, 5, 7]:  # car, motorcycle, bus, truck
-                detections_.append([x1, y1, x2, y2, score])
+                detections_.append(([x1, y1, x2 - x1, y2 - y1], score, class_id))  # ltrb format: left, top, width, height
+                # detections_.append([x1, y1, x2, y2, score])
 
         # Track vehicles
-        track_ids = mot_tracker.update(np.asarray(detections_))
+        tracks = tracker.update_tracks(detections_, frame=frame)  # bgr image for embedder
+        track_ids = [t for t in tracks if t.is_confirmed()]
+        # track_ids = mot_tracker.update(np.asarray(detections_))
 
         # Detect license plates
         license_plates = license_plate_detector(frame)[0]
@@ -67,7 +80,12 @@ def process_video(video_path: str):
             x1, y1, x2, y2, score, class_id = license_plate
 
             # Assign plate to car
-            xcar1, ycar1, xcar2, ycar2, car_id = get_car(license_plate, track_ids)
+            # xcar1, ycar1, xcar2, ycar2, car_id = get_car(license_plate, track_ids)
+            car_object = get_car_deep(license_plate, track_ids)
+            if car_object == (-1, -1, -1, -1, -1):
+                continue
+            
+            car_id = car_object.track_id
 
             if car_id == -1:
                 continue
@@ -86,6 +104,7 @@ def process_video(video_path: str):
             logger.info(
                 f"Frame {frame_count:04d} | Car ID: {car_id} | Plate: {license_number} | Score: {ocr_score:.3f}"
             )
+            print(f"Frame {frame_count:04d} | Car ID: {car_id} | Plate: {license_number} | Score: {ocr_score:.3f}")
 
             # Upsert into DB
             upsert_plate(
@@ -113,8 +132,8 @@ def process_stream(url: str, source_name: str):
         return
 
     # Same models & tracker
-    coco_model = YOLO('yolov8n.pt')
-    license_plate_detector = YOLO('./best.pt')
+    coco_model = YOLO('yolo11n.pt')
+    license_plate_detector = YOLO('./License_plate_yolo11.pt')
     mot_tracker = Sort()
 
     frame_count = 0
@@ -140,18 +159,24 @@ def process_stream(url: str, source_name: str):
         # vehicle detection & tracking (identical to process_video)
         detections = coco_model(frame)[0]
         detections_ = []
-        for d in detections.boxes.data.tolist():
+        for d in detections.boxes.data.numpy():
             x1, y1, x2, y2, score, class_id = d
             if int(class_id) in [2, 3, 5, 7]:
                 detections_.append([x1, y1, x2, y2, score])
 
-        track_ids = mot_tracker.update(np.asarray(detections_))
+        # track_ids = mot_tracker.update(np.asarray(detections_))
+        tracks = tracker.update_tracks(detections_, frame=frame)  # bgr image for embedder
+        track_ids = [t for t in tracks if t.is_confirmed()]
 
         # plate detection & OCR
         license_plates = license_plate_detector(frame)[0]
         for lp in license_plates.boxes.data.tolist():
             x1, y1, x2, y2, score, _ = lp
-            xcar1, ycar1, xcar2, ycar2, car_id = get_car(lp, track_ids)
+            car_object = get_car_deep(lp, track_ids)
+            if car_object == (-1, -1, -1, -1, -1):
+                continue
+            
+            car_id = car_object.track_id
             if car_id == -1:
                 continue
 

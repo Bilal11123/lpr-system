@@ -6,7 +6,7 @@ from pathlib import Path
 import shutil
 import sqlite3
 from db import DB_PATH
-from processor import process_video, process_stream
+from processor2 import process_video, process_stream
 import logging
 
 logging.basicConfig(level=logging.INFO)

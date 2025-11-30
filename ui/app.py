@@ -91,7 +91,7 @@ with st.sidebar:
 
 # ---------- MAIN ----------
 st.title("License Plate Recognition")
-st.markdown("YOLOv8 + EasyOCR + SORT – **Batch & Live**")
+st.markdown("YOLOv8 + PaddleOCR + Deep-SORT – **Batch & Live**")
 
 plates = get_plates()
 

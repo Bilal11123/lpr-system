@@ -1,5 +1,5 @@
 # License Plate Recognition (LPR) System  
-**Real-time & Batch LPR using YOLOv8 + PaddleOCR + SORT**
+**Real-time & Batch LPR using YOLO11 + PaddleOCR + Deep-SORT**
 
 [![Python 3.10](https://img.shields.io/badge/python-3.10-blue.svg)](https://www.python.org/downloads/release/python-31011/)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)](https://hub.docker.com/u/mbilal1446)
@@ -9,7 +9,7 @@ A complete **License Plate Recognition** system supporting:
 - Video file upload
 - Live RTSP / HTTP / Webcam streaming
 - High-accuracy OCR with **PaddleOCR**
-- Vehicle tracking using **SORT**
+- Vehicle tracking using **Deep-SORT**
 - Beautiful dashboard with auto-refresh & CSV export
 
 Trained License Plate Detector: [Roboflow Universe Dataset](https://universe.roboflow.com/roboflow-universe-projects/license-plate-recognition-rxg4e/dataset/11)
@@ -47,7 +47,7 @@ git clone https://github.com/Bilal11123/lpr-system.git
 cd lpr-system
 
 # Place your models
-# → yolov8n.pt (download from Ultralytics)
+# → yolo11n.pt (download from Ultralytics)
 # → best.pt (your trained plate detector)
 
 # Add SORT tracker
@@ -103,7 +103,7 @@ lpr-system/
 
 | Component         | Technology                      |
 |-------------------|---------------------------------|
-| Detection         | YOLOv8 (Ultralytics)            |
+| Detection         | YOLO11 (Ultralytics)            |
 | OCR               | PaddleOCR (high accuracy)       |
 | Tracking          | SORT                            |
 | Backend           | FastAPI                         |
