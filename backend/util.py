@@ -1,3 +1,4 @@
+# backend/util.py
 import string
 import numpy as np
 # from paddleocr import TextRecognition
@@ -29,10 +30,10 @@ def license_complies_format(text):
     
     if  (text[0] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] or text[0] in dict_char_to_int.keys()) and \
         (text[1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] or text[0] in dict_char_to_int.keys()) and \
-        (text[2] in string.ascii_uppercase or text[1] in dict_int_to_char.keys()) and \
-        (text[3] in string.ascii_uppercase or text[1] in dict_int_to_char.keys()) and \
-        (text[length-2] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] or text[0] in dict_char_to_int.keys()) and \
-        (text[length-1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] or text[0] in dict_char_to_int.keys()):
+        (text[2] in string.ascii_uppercase or text[2] in dict_int_to_char.keys()) and \
+        (text[3] in string.ascii_uppercase or text[3] in dict_int_to_char.keys()) and \
+        (text[length-2] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] or text[length-2] in dict_char_to_int.keys()) and \
+        (text[length-1] in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] or text[length-1] in dict_char_to_int.keys()):
         return True
     else:
         print(f"{text} failed format test in license_complies_format")
@@ -65,7 +66,7 @@ def format_license(text):
                 license_plate_ += mapping[j][text[j]]
             else:
                 license_plate_ += text[j]
-            print(f"{license_plate_} is being formatted")
+            # print(f"{license_plate_} is being formatted")
     elif length == 8:
         mapping = {
             0: dict_char_to_int, 1: dict_char_to_int,
@@ -80,7 +81,7 @@ def format_license(text):
                 license_plate_ += mapping[j][text[j]]
             else:
                 license_plate_ += text[j]
-            print(f"{license_plate_} is being formatted")
+            # print(f"{license_plate_} is being formatted")
 
     print(f"{license_plate_} is formatted")
     return license_plate_
@@ -166,8 +167,6 @@ def get_car(license_plate, vehicle_track_ids):
 
     foundIt = False
     for j in range(len(vehicle_track_ids)):
-
-
         xcar1, ycar1, xcar2, ycar2, car_id = vehicle_track_ids[j]
 
         if x1 > xcar1 and y1 > ycar1 and x2 < xcar2 and y2 < ycar2:

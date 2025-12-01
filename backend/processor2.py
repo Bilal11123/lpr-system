@@ -1,4 +1,4 @@
-# backend/processor.py
+# backend/processor2.py
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["YOLO_VERBOSE"] = "False"
@@ -38,7 +38,7 @@ def process_video(video_path: str):
 
     # Load models
     coco_model = YOLO('yolo11n.pt')
-    license_plate_detector = YOLO('./License_plate_yolo11.pt')
+    license_plate_detector = YOLO('./best_11_2.pt')
 
     cap = cv2.VideoCapture(str(video_path))
     frame_count = 0
@@ -133,7 +133,7 @@ def process_stream(url: str, source_name: str):
 
     # Same models & tracker
     coco_model = YOLO('yolo11n.pt')
-    license_plate_detector = YOLO('./License_plate_yolo11.pt')
+    license_plate_detector = YOLO('./best_11_2.pt')
     mot_tracker = Sort()
 
     frame_count = 0
@@ -197,3 +197,129 @@ def process_stream(url: str, source_name: str):
 
     cap.release()
     logger.info(f"Stream {source_name} finished")
+
+def process_video4(video_path: str, app):
+    """
+    Process a single video file and store results in DB.
+    """
+    video_path = Path(video_path)
+    if not video_path.exists():
+        raise FileNotFoundError(f"Video not found: {video_path}")
+
+    VIDEO_SOURCE_NAME = video_path.name
+
+    # Load models
+    coco_model = YOLO('yolo11n.pt')
+    license_plate_detector = YOLO('./best_11_2.pt')
+
+    cap = cv2.VideoCapture(str(video_path))
+    frame_count = 0
+    
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    height_threshold = frame_height * 0.55  # 50% of frame height
+    
+
+    logger.info(f"Started processing {VIDEO_SOURCE_NAME}")
+    
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        frame_count += 1
+
+        # Detect vehicles
+        detections = coco_model(frame)[0]
+        detections_ = []
+        for detection in detections.boxes.data.numpy():
+            x1, y1, x2, y2, score, class_id = detection
+
+            if int(class_id) in [2, 3, 5, 7]:  # car, motorcycle, bus, truck
+                detections_.append(([x1, y1, x2 - x1, y2 - y1], score, class_id))
+
+        # Track vehicles
+        tracks = tracker.update_tracks(detections_, frame=frame)
+        track_ids = [t for t in tracks if t.is_confirmed()]
+
+        # Detect license plates
+        license_plates = license_plate_detector(frame)[0]
+
+        for license_plate in license_plates.boxes.data.tolist():
+            x1, y1, x2, y2, score, class_id = license_plate
+
+            # Assign plate to car
+            car_object = get_car_deep(license_plate, track_ids)
+            if car_object == (-1, -1, -1, -1, -1):
+                continue
+            
+            car_id = car_object.track_id
+
+            if car_id == -1:
+                continue
+            
+            # Get car bounding box from the track object
+            car_bbox = car_object.to_ltrb()  # left, top, right, bottom
+            # car_y_center = (car_bbox[1] + car_bbox[3]) / 2
+            
+            # Only process if vehicle bottom has passed 55% of frame height
+            if car_bbox[3] < height_threshold:
+                continue
+
+            # Draw license plate bounding box
+            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
+
+            # Crop and OCR
+            license_plate_crop = frame[int(y1):int(y2), int(x1):int(x2)]
+            crop_rgb = cv2.cvtColor(license_plate_crop, cv2.COLOR_BGR2RGB)
+
+            license_number, ocr_score = read_license_plate(crop_rgb)
+            if not license_number or len(license_number) < 7:
+                continue
+
+            logger.info(
+                f"Frame {frame_count:04d} | Car ID: {car_id} | Plate: {license_number} | Score: {ocr_score:.3f}"
+            )
+            print(f"Frame {frame_count:04d} | Car ID: {car_id} | Plate: {license_number} | Score: {ocr_score:.3f}")
+
+            # Draw text background for better visibility
+            text = f"ID:{car_id} {license_number} {ocr_score:.2f}"
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            font_scale = 0.5
+            thickness = 2
+            
+            # Get text size for background rectangle
+            (text_width, text_height), baseline = cv2.getTextSize(text, font, font_scale, thickness)
+            
+            # Position text above the license plate box
+            text_x = int(x1)
+            text_y = int(y1) - 10
+            
+            # Ensure text doesn't go off screen
+            if text_y < text_height + 10:
+                text_y = int(y2) + text_height + 10
+            
+            # Draw background rectangle
+            cv2.rectangle(frame, 
+                            (text_x, text_y - text_height - 5), 
+                            (text_x + text_width + 5, text_y + baseline), 
+                            (0, 255, 0), 
+                            -1)
+            
+            # Draw text
+            cv2.putText(frame, text, (text_x, text_y), 
+                        font, font_scale, (0, 0, 0), thickness)
+
+            # Upsert into DB (only once per car or when better score found)
+            upsert_plate(
+                car_id=int(car_id),
+                license_number=license_number,
+                score=ocr_score,
+                video_source=VIDEO_SOURCE_NAME,
+            )
+
+        cv2.line(frame, (0, int(height_threshold)), (frame_width, int(height_threshold)), (0, 0, 255), 4, lineType=cv2.LINE_8, shift=0)
+        # resized_img_fixed = cv2.resize(frame, (1080, 600))
+    
+    cap.release()
+    logger.info(f"Finished processing {VIDEO_SOURCE_NAME}")

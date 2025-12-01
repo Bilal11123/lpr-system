@@ -47,6 +47,7 @@ def upsert_plate(car_id: int, license_number: str, score: float, video_source: s
             """,
             (car_id, license_number, score, now, video_source),
         )
+        print(f"New Car ID: {car_id}, New LP: {license_number}")
     else:
         current_score = row[0]
         if score > current_score:
@@ -59,6 +60,7 @@ def upsert_plate(car_id: int, license_number: str, score: float, video_source: s
                 """,
                 (license_number, score, now, car_id),
             )
+            print(f"OLD Car ID: {car_id}, New REPLACED LP: {license_number}")
 
     conn.commit()
     conn.close()
