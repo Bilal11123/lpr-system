@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   backend:
     build:
@@ -10,13 +12,13 @@ services:
     volumes:
       - ./backend/uploads:/app/uploads
       - ./backend/sort:/app/sort
-      # REMOVED problematic file mount
-      # - ./backend/license_plates.db:/app/license_plates.db
     environment:
       - KMP_DUPLICATE_LIB_OK=TRUE
-    # REMOVED GPU section (not supported in WSL2 without extra setup)
-    # deploy: ...
-    command: uvicorn app:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build:
@@ -26,12 +28,9 @@ services:
     restart: unless-stopped
     ports:
       - "8501:8501"
-    depends_on:
-      - backend
     environment:
       - API_BASE=http://backend:8000
+      - DOCKER_ENV=1
+    depends_on:
+      - backend
     command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
-
-# Optional: persistent named volume for uploads only
-volumes:
-  uploads:

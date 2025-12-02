@@ -1,10 +1,13 @@
 import os
-API_BASE = os.getenv("API_BASE", "http://localhost:8000")
+# API_BASE = os.getenv("API_BASE", "http://localhost:8000")
 import streamlit as st
 import requests, time, pandas as pd
 
 # ---------- CONFIG ----------
-API_BASE = "http://0.0.0.0:8000"
+API_BASE = os.getenv("API_BASE", "http://backend:8000")   # Works in Docker
+# Fallback for local dev only → http://localhost:8000
+if not os.getenv("DOCKER_ENV"):
+    API_BASE = "http://localhost:8000"
 UPLOAD_EP = f"{API_BASE}/process-video/"
 STREAM_EP = f"{API_BASE}/process-stream/"
 PLATES_EP = f"{API_BASE}/plates/"
